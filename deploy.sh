@@ -19,7 +19,7 @@ aws sts get-caller-identity > /dev/null || {
  
 echo "✅ AWS Ready"
  
-chmod +x linux_instances.sh windows_instances.sh
+chmod +x linux_instances.sh window_instances.sh
  
 # LINUX
 echo "🐧 Deploying Linux..."
