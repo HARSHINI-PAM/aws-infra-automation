@@ -27,7 +27,7 @@ source ./linux_instances.sh
  
 # WINDOWS
 echo "🪟 Deploying Windows..."
-./windows_instances.sh
+./window_instances.sh
  
 echo ""
 echo "=================================="
