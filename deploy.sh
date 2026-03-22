@@ -13,7 +13,14 @@ LINUX_COUNT=3
 WINDOWS_COUNT=2
 
 PROJECT_NAME="DevOpsAutomation"
+# =========================
+# INSTANCE NAMES (EDIT HERE)
+# =========================
 
+LINUX_NAMES="Linux-Dashboard,Linux-Docker,Linux-API"
+WINDOWS_NAMES="Windows-Control,Windows-Monitor"
+
+export LINUX_NAMES WINDOWS_NAMES
 echo "==========================================="
 echo "   AWS DevOps Deployment (Central Control) "
 echo "==========================================="
@@ -50,7 +57,7 @@ export LINUX_COUNT WINDOWS_COUNT PROJECT_NAME
 # =========================
 
 chmod +x linux_instances.sh
-chmod +x windows_instances.sh
+chmod +x window_instances.sh
 
 echo ""
 echo "🚀 Launching Linux Infrastructure..."
@@ -58,7 +65,7 @@ echo "🚀 Launching Linux Infrastructure..."
 
 echo ""
 echo "🚀 Launching Windows Infrastructure..."
-./windows_instances.sh
+./window_instances.sh
 
 echo ""
 echo "==========================================="

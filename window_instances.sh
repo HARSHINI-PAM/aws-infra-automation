@@ -13,7 +13,6 @@ INSTANCE_IDS=$(aws ec2 run-instances \
 --associate-public-ip-address \
 --region $REGION \
 --tag-specifications "ResourceType=instance,Tags=[
-{Key=Name,Value=Windows-Server},
 {Key=Project,Value=$PROJECT_NAME},
 {Key=OS,Value=Windows}
 ]" \
@@ -28,6 +27,21 @@ Set-Content -Path C:\inetpub\wwwroot\index.html -Value $html
 --output text)
 
 echo "Instances created: $INSTANCE_IDS"
+
+IFS=',' read -ra NAME_ARRAY <<< "$WINDOWS_NAMES"
+
+i=0
+for id in $INSTANCE_IDS; do
+    NAME=${NAME_ARRAY[$i]}
+    
+    aws ec2 create-tags \
+    --resources $id \
+    --tags Key=Name,Value=$NAME
+
+    echo "Assigned Name: $NAME → $id"
+    
+    ((i++))
+done
 
 echo "Waiting for instances to initialize..."
 sleep 60

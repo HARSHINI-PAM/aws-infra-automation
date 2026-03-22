@@ -13,7 +13,6 @@ INSTANCE_IDS=$(aws ec2 run-instances \
 --associate-public-ip-address \
 --region $REGION \
 --tag-specifications "ResourceType=instance,Tags=[
-{Key=Name,Value=Linux-Server},
 {Key=Project,Value=$PROJECT_NAME},
 {Key=OS,Value=Linux}
 ]" \
@@ -39,6 +38,25 @@ node /home/ec2-user/api/server.js &
 --output text)
 
 echo "Instances created: $INSTANCE_IDS"
+
+# Convert names into array
+IFS=',' read -ra NAME_ARRAY <<< "$LINUX_NAMES"
+
+i=0
+for id in $INSTANCE_IDS; do
+    NAME=${NAME_ARRAY[$i]}
+    
+    aws ec2 create-tags \
+    --resources $id \
+    --tags Key=Name,Value=$NAME
+
+    echo "Assigned Name: $NAME → $id"
+    
+    ((i++))
+done
+
+
+
 
 echo "Waiting for instances to initialize..."
 sleep 30
