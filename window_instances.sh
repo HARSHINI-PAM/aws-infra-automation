@@ -4,7 +4,7 @@ WINDOWS_AMI="ami-071a03d52b61d8f52"
 
 echo "Creating $WINDOWS_COUNT Windows instances..."
 
-OUTPUT=$(aws ec2 run-instances \
+INSTANCE_IDS=$(aws ec2 run-instances \
 --image-id $WINDOWS_AMI \
 --count $WINDOWS_COUNT \
 --instance-type $INSTANCE_TYPE \
@@ -23,11 +23,13 @@ Install-WindowsFeature -Name Web-Server -IncludeManagementTools
 $html="<h1>DevOps Windows Server</h1><p>Status: Running</p>"
 
 Set-Content -Path C:\inetpub\wwwroot\index.html -Value $html
-</powershell>'
-)
+</powershell>' \
+--query 'Instances[*].InstanceId' \
+--output text)
 
-INSTANCE_IDS=$(echo $OUTPUT | jq -r '.Instances[*].InstanceId')
+echo "Instances created: $INSTANCE_IDS"
 
+echo "Waiting for instances to initialize..."
 sleep 60
 
 IPS=$(aws ec2 describe-instances \
@@ -35,9 +37,12 @@ IPS=$(aws ec2 describe-instances \
 --query 'Reservations[*].Instances[*].PublicIpAddress' \
 --output text)
 
-echo "Windows Services:"
+echo "-----------------------------------"
+echo "Windows Applications Deployed:"
+echo "-----------------------------------"
+
 for ip in $IPS; do
-echo "IP: $ip"
-echo " IIS → http://$ip"
-echo "--------------------------"
+echo "Server IP: $ip"
+echo " IIS Portal → http://$ip"
+echo "-----------------------------------"
 done

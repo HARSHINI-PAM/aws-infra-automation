@@ -4,7 +4,7 @@ AMI_ID="ami-0aaa636894689fa47"
 
 echo "Creating $LINUX_COUNT Linux instances..."
 
-OUTPUT=$(aws ec2 run-instances \
+INSTANCE_IDS=$(aws ec2 run-instances \
 --image-id $AMI_ID \
 --count $LINUX_COUNT \
 --instance-type $INSTANCE_TYPE \
@@ -29,26 +29,33 @@ systemctl enable docker
 
 docker run -d -p 8080:80 nginx
 
-mkdir /home/ec2-user/api
+mkdir -p /home/ec2-user/api
+
 echo "require(\"http\").createServer((req,res)=>res.end(\"API Running\")).listen(3000)" > /home/ec2-user/api/server.js
 
 node /home/ec2-user/api/server.js &
-')
+' \
+--query "Instances[*].InstanceId" \
+--output text)
 
-INSTANCE_IDS=$(echo $OUTPUT | jq -r '.Instances[*].InstanceId')
+echo "Instances created: $INSTANCE_IDS"
 
-sleep 25
+echo "Waiting for instances to initialize..."
+sleep 30
 
 IPS=$(aws ec2 describe-instances \
 --instance-ids $INSTANCE_IDS \
 --query 'Reservations[*].Instances[*].PublicIpAddress' \
 --output text)
 
-echo "Linux Services:"
+echo "-----------------------------------"
+echo "Linux Applications Deployed:"
+echo "-----------------------------------"
+
 for ip in $IPS; do
-echo "IP: $ip"
-echo " Web → http://$ip"
-echo " Docker → http://$ip:8080"
-echo " API → http://$ip:3000"
-echo "--------------------------"
+echo "Server IP: $ip"
+echo " Web Dashboard → http://$ip"
+echo " Docker App → http://$ip:8080"
+echo " API Server → http://$ip:3000"
+echo "-----------------------------------"
 done

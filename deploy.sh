@@ -18,7 +18,30 @@ echo "==========================================="
 echo "   AWS DevOps Deployment (Central Control) "
 echo "==========================================="
 
-# Export variables so child scripts can use them
+# =========================
+# VALIDATION (VERY IMPORTANT)
+# =========================
+
+echo "Validating AWS resources..."
+
+aws ec2 describe-key-pairs --key-names $KEY_NAME > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Key Pair '$KEY_NAME' not found!"
+  exit 1
+fi
+
+aws ec2 describe-security-groups --group-ids $SECURITY_GROUP_ID > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Security Group '$SECURITY_GROUP_ID' not found!"
+  exit 1
+fi
+
+echo "✅ Validation successful"
+
+# =========================
+# EXPORT VARIABLES
+# =========================
+
 export REGION INSTANCE_TYPE KEY_NAME SECURITY_GROUP_ID
 export LINUX_COUNT WINDOWS_COUNT PROJECT_NAME
 
@@ -26,15 +49,18 @@ export LINUX_COUNT WINDOWS_COUNT PROJECT_NAME
 # EXECUTION
 # =========================
 
-echo ""
-echo "Launching Linux Infrastructure..."
-bash create_linux_instances.sh
+chmod +x linux_instances.sh
+chmod +x windows_instances.sh
 
 echo ""
-echo "Launching Windows Infrastructure..."
-bash create_windows_instances.sh
+echo "🚀 Launching Linux Infrastructure..."
+./linux_instances.sh
+
+echo ""
+echo "🚀 Launching Windows Infrastructure..."
+./windows_instances.sh
 
 echo ""
 echo "==========================================="
-echo " Deployment Completed Successfully 🚀"
+echo " 🎉 Deployment Completed Successfully"
 echo "==========================================="
