@@ -4,7 +4,7 @@ set -e
 # CONFIG
 REGION="eu-north-1"
 INSTANCE_TYPE="t3.micro"
-KEY_NAME="devops-key"
+KEY_NAME="aws-infra-key"
 SECURITY_GROUP_ID="sg-0e2a308bcf9c86f10"
  
 export REGION INSTANCE_TYPE KEY_NAME SECURITY_GROUP_ID
