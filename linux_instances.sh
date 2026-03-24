@@ -73,7 +73,7 @@ EOF
 --output text)
  
 # ========================
-# 3️⃣ Database Server
+# 3️⃣ Clock Server (Replaces Database)
 # ========================
 ID3=$(aws ec2 run-instances \
 --image-id $AMI_ID \
@@ -83,26 +83,87 @@ ID3=$(aws ec2 run-instances \
 --security-group-ids $SECURITY_GROUP_ID \
 --associate-public-ip-address \
 --region $REGION \
---tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-Database}]" \
+--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-Clock-Server}]" \
 --user-data '#!/bin/bash
 yum update -y
-yum install mysql-server nginx -y
  
-systemctl start mysqld
-systemctl enable mysqld
+amazon-linux-extras install nginx1 -y
 systemctl start nginx
- 
-STATUS=$(systemctl is-active mysqld)
+systemctl enable nginx
  
 cat <<EOF > /usr/share/nginx/html/index.html
-<h1>🗄️ Database Server</h1>
-<p>Status: $STATUS</p>
-<meta http-equiv="refresh" content="5">
+<!DOCTYPE html>
+<html>
+<head>
+<title>Global Clock Dashboard</title>
+<style>
+body {
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  font-family: Arial;
+}
+.container {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 50px;
+}
+.clock {
+  background: #1e293b;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+h2 { margin-bottom: 20px; }
+.time { font-size: 30px; }
+</style>
+</head>
+ 
+<body>
+ 
+<h1>🌍 Global Time Dashboard</h1>
+ 
+<div class="container">
+  <div class="clock">
+    <h2>🇬🇧 GMT</h2>
+    <div class="time" id="gmt"></div>
+  </div>
+ 
+  <div class="clock">
+    <h2>🇮🇳 IST</h2>
+    <div class="time" id="ist"></div>
+  </div>
+ 
+  <div class="clock">
+    <h2>🇺🇸 PST</h2>
+    <div class="time" id="pst"></div>
+  </div>
+</div>
+ 
+<script>
+function updateTime() {
+  const now = new Date();
+ 
+  document.getElementById("gmt").innerHTML =
+    now.toLocaleTimeString("en-GB", { timeZone: "UTC" });
+ 
+  document.getElementById("ist").innerHTML =
+    now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" });
+ 
+  document.getElementById("pst").innerHTML =
+    now.toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles" });
+}
+ 
+setInterval(updateTime, 1000);
+updateTime();
+</script>
+ 
+</body>
+</html>
 EOF
 ' \
 --query "Instances[0].InstanceId" \
---output text)
- 
+--output text) 
 echo "⏳ Waiting for Linux instances..."
 sleep 50
  
@@ -115,9 +176,9 @@ IPS_ARRAY=($IPS)
  
 export LINUX_WEB_IP=${IPS_ARRAY[0]}
 export FILE_MANAGER_IP=${IPS_ARRAY[1]}
-export DATABASE_IP=${IPS_ARRAY[2]}
+export CLOCK_IP=${IPS_ARRAY[2]}
  
 echo "🐧 Linux Servers Ready:"
 echo "Web → http://${LINUX_WEB_IP}"
 echo "File → http://${FILE_MANAGER_IP}"
-echo "DB → http://${DATABASE_IP}"
+echo "FRONTEND → http://${FRONTEND_IP}"
