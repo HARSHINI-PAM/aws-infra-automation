@@ -7,7 +7,11 @@
 REGION="ap-south-1"
 INSTANCE_TYPE="t2.micro"
 KEY_NAME="aws-infra-key"
-SECURITY_GROUP_ID="sg-0e2a308bcf9c86f10"
+SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+  --filters Name=group-name,Values=default \
+  --query "SecurityGroups[0].GroupId" \
+  --region $REGION \
+  --output text)
  
 echo "🔍 Fetching latest Windows AMI..."
  
