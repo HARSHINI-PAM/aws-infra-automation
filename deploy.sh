@@ -1,7 +1,11 @@
 #!/bin/bash
+ 
 set -e
  
+# ==============================
 # CONFIG
+# ==============================
+ 
 REGION="eu-north-1"
 INSTANCE_TYPE="t3.micro"
 KEY_NAME="aws-infra-key"
@@ -11,33 +15,47 @@ export REGION INSTANCE_TYPE KEY_NAME SECURITY_GROUP_ID
  
 echo "🚀 Starting DevOps Deployment..."
  
+# ==============================
 # VALIDATION
+# ==============================
+ 
 aws sts get-caller-identity > /dev/null || {
-  echo "❌ AWS not configured"
-  exit 1
+    echo "❌ AWS not configured"
+    exit 1
 }
  
 echo "✅ AWS Ready"
  
 chmod +x linux_instances.sh window_instances.sh
  
-# LINUX
-echo "🐧 Deploying Linux..."
-source ./linux_instances.sh
+# ==============================
+# LINUX DEPLOYMENT
+# ==============================
  
-# WINDOWS
-echo "🪟 Deploying Windows..."
-./window_instances.sh
+echo "🐧 Deploying Linux Servers..."
+bash linux_instances.sh
+ 
+# ==============================
+# WINDOWS DEPLOYMENT
+# ==============================
+ 
+echo "🪟 Deploying Windows Servers..."
+bash window_instances.sh
+ 
+# ==============================
+# FINAL OUTPUT
+# ==============================
  
 echo ""
-echo "=================================="
-echo "🎉 Deployment Completed"
-echo "=================================="
+echo "====================================="
+echo "🎉 Deployment Completed Successfully"
+echo "====================================="
  
 echo ""
-echo "👉 Linux Web: http://$LINUX_WEB_IP"
-echo "👉 File Manager: http://$FILE_MANAGER_IP"
-echo "👉 Database: http://$DATABASE_IP"
+echo "💡 Check outputs above for public IPs"
  
 echo ""
-echo "⚠️ Open Windows Frontend and replace IPs manually in dashboard if needed"
+echo "📌 Notes:"
+echo "- Linux scripts will print Web, File, Clock URLs"
+echo "- Windows script will print Monitor & Frontend URLs"
+echo "- If not accessible, wait 1–2 minutes"
