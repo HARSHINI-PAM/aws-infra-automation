@@ -1,138 +1,104 @@
 #!/bin/bash
+set -e
  
-# ==============================
-# CONFIGURATION
-# ==============================
- 
-REGION="ap-south-1"
-INSTANCE_TYPE="t2.micro"
-KEY_NAME="aws-infra-key"
-SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-  --filters Name=group-name,Values=default \
-  --query "SecurityGroups[0].GroupId" \
-  --region $REGION \
-  --output text)
- 
-echo "🔍 Fetching latest Windows AMI..."
+echo "🪟 Starting Windows Deployment..."
+echo "Using REGION: $REGION"
+echo "Using KEY: $KEY_NAME"
+echo "Using SG: $SECURITY_GROUP_ID"
  
 # ==============================
 # DYNAMIC WINDOWS AMI
 # ==============================
  
 WINDOWS_AMI=$(aws ec2 describe-images \
-    --owners amazon \
-    --filters "Name=name,Values=Windows_Server-2019-English-Full-Base-*" \
-              "Name=state,Values=available" \
-    --query "sort_by(Images, &CreationDate)[-1].ImageId" \
-    --region $REGION \
-    --output text)
+  --owners amazon \
+  --filters "Name=name,Values=Windows_Server-2019-English-Full-Base-*" \
+  --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+  --region $REGION \
+  --output text)
  
-echo "✅ Latest Windows AMI: $WINDOWS_AMI"
+echo "✅ Windows AMI: $WINDOWS_AMI"
  
 # ==============================
-# CREATE MONITOR SERVER
+# 1️⃣ MONITOR SERVER
 # ==============================
  
-echo "🚀 Creating Windows Monitor Server..."
+echo "🚀 Creating Monitor Server..."
  
 ID1=$(aws ec2 run-instances \
-    --image-id $WINDOWS_AMI \
-    --count 1 \
-    --instance-type $INSTANCE_TYPE \
-    --key-name $KEY_NAME \
-    --security-group-ids $SECURITY_GROUP_ID \
-    --associate-public-ip-address \
-    --region $REGION \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Monitor}]" \
-    --user-data '<powershell>
+  --image-id $WINDOWS_AMI \
+  --count 1 \
+  --instance-type $INSTANCE_TYPE \
+  --key-name $KEY_NAME \
+  --security-group-ids $SECURITY_GROUP_ID \
+  --associate-public-ip-address \
+  --region $REGION \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Monitor}]" \
+  --user-data '<powershell>
 Install-WindowsFeature Web-Server
+Start-Service W3SVC
  
 $cpu = Get-Counter "\Processor(_Total)\% Processor Time"
 $hostname = hostname
  
-$html = "<meta http-equiv=\"refresh\" content=\"5\"><h1>🖥️ Monitor Server</h1><p>Host: $hostname</p><p>CPU Usage: $($cpu.CounterSamples[0].CookedValue)%</p>"
+$html = "<meta http-equiv=\"refresh\" content=\"5\"><h1>Monitor</h1><p>$hostname</p><p>CPU: $($cpu.CounterSamples[0].CookedValue)%</p>"
  
 Set-Content C:\inetpub\wwwroot\index.html $html
 </powershell>' \
-    --query "Instances[0].InstanceId" \
-    --output text)
- 
-echo "✅ Monitor Instance ID: $ID1"
+  --query "Instances[0].InstanceId" \
+  --output text)
  
 # ==============================
-# CREATE FRONTEND SERVER
+# 2️⃣ FRONTEND SERVER
 # ==============================
  
-echo "🚀 Creating Windows Frontend Server..."
+echo "🚀 Creating Frontend Server..."
  
 ID2=$(aws ec2 run-instances \
-    --image-id $WINDOWS_AMI \
-    --count 1 \
-    --instance-type $INSTANCE_TYPE \
-    --key-name $KEY_NAME \
-    --security-group-ids $SECURITY_GROUP_ID \
-    --associate-public-ip-address \
-    --region $REGION \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Frontend}]" \
-    --user-data '<powershell>
+  --image-id $WINDOWS_AMI \
+  --count 1 \
+  --instance-type $INSTANCE_TYPE \
+  --key-name $KEY_NAME \
+  --security-group-ids $SECURITY_GROUP_ID \
+  --associate-public-ip-address \
+  --region $REGION \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Frontend}]" \
+  --user-data '<powershell>
 Install-WindowsFeature Web-Server
+Start-Service W3SVC
  
 $html = @"
 <!DOCTYPE html>
 <html>
 <body style="background:#0f172a;color:white;text-align:center;font-family:Arial">
 <h1>🚀 DevOps Dashboard</h1>
-<p>Frontend is running successfully</p>
+<p>Windows Frontend Running</p>
 </body>
 </html>
 "@
  
 Set-Content C:\inetpub\wwwroot\index.html $html
 </powershell>' \
-    --query "Instances[0].InstanceId" \
-    --output text)
- 
-echo "✅ Frontend Instance ID: $ID2"
+  --query "Instances[0].InstanceId" \
+  --output text)
  
 # ==============================
-# WAIT FOR INSTANCES
+# WAIT + IPS
 # ==============================
  
-echo "⏳ Waiting for instances to be running..."
- 
-aws ec2 wait instance-running \
-    --instance-ids $ID1 $ID2 \
-    --region $REGION
- 
-echo "⏳ Waiting for system checks..."
-sleep 40
- 
-# ==============================
-# FETCH PUBLIC IPS
-# ==============================
+aws ec2 wait instance-running --instance-ids $ID1 $ID2 --region $REGION
  
 IPS=$(aws ec2 describe-instances \
-    --instance-ids $ID1 $ID2 \
-    --query "Reservations[*].Instances[*].PublicIpAddress" \
-    --region $REGION \
-    --output text)
+  --instance-ids $ID1 $ID2 \
+  --query "Reservations[*].Instances[*].PublicIpAddress" \
+  --region $REGION \
+  --output text)
  
 IPS_ARRAY=($IPS)
  
-MONITOR_IP=${IPS_ARRAY[0]}
-FRONTEND_IP=${IPS_ARRAY[1]}
+echo "================================="
+echo "🎉 Windows Servers Ready!"
+echo "================================="
  
-# ==============================
-# FINAL OUTPUT
-# ==============================
- 
-echo "======================================"
-echo "🎉 Windows Servers Deployed Successfully!"
-echo "======================================"
- 
-echo "🖥️ Monitor   → http://$MONITOR_IP"
-echo "🌐 Frontend  → http://$FRONTEND_IP"
- 
-echo "💡 Note:"
-echo "- If not loading immediately, wait 1–2 minutes"
-echo "- Ensure Security Group allows HTTP (port 80)"
+echo "🖥️ Monitor: http://${IPS_ARRAY[0]}"
+echo "🌐 Frontend: http://${IPS_ARRAY[1]}"

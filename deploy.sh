@@ -8,11 +8,14 @@ set -e
  
 REGION="eu-north-1"
 INSTANCE_TYPE="t3.micro"
-KEY_NAME="aws-infra-key"
+KEY_NAME="aws-project-key"
 SECURITY_GROUP_ID="sg-0e2a308bcf9c86f10"
- 
 export REGION INSTANCE_TYPE KEY_NAME SECURITY_GROUP_ID
- 
+echo "================================"
+echo "REGION: $REGION"
+echo "KEY_NAME: $KEY_NAME"
+echo "SECURITY_GROUP_ID: $SECURITY_GROUP_ID"
+echo "================================" 
 echo "🚀 Starting DevOps Deployment..."
  
 # ==============================
