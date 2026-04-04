@@ -21,18 +21,48 @@ ID1=$(aws ec2 run-instances \
 --region $REGION \
 --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Weather}]" \
 --user-data '<powershell>
-Install-WindowsFeature Web-Server
+# Enable script execution
+Set-ExecutionPolicy Unrestricted -Force
+ 
+# Install IIS
+Install-WindowsFeature -Name Web-Server -IncludeManagementTools
+ 
+# Start IIS
 Start-Service W3SVC
 Set-Service W3SVC -StartupType Automatic
-New-NetFirewallRule -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
  
-Start-Sleep -Seconds 20
+# Allow HTTP
+New-NetFirewallRule -DisplayName "Allow HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
  
-$html="<h1>🌦️ Weather App Running</h1>"
-Set-Content C:\inetpub\wwwroot\index.html $html
+# Wait for IIS
+Start-Sleep -Seconds 30
+ 
+# Create Weather UI
+$html = @"
+<html>
+<head>
+<title>Weather App</title>
+<style>
+body{background:#0f172a;color:white;font-family:Arial;text-align:center;margin-top:100px}
+.card{background:#1e293b;padding:30px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🌦 Weather App</h1>
+<p>Location: Auto-detected</p>
+<p>Status: Sunny ☀</p>
+</div>
+</body>
+</html>
+"@
+ 
+Set-Content -Path "C:\inetpub\wwwroot\index.html" -Value $html
+ 
 iisreset
-</powershell>'
-)
+</powershell>' \
+--query "Instances[0].InstanceId" \
+--output text)
  
 # ========================
 # 2️⃣ Monitoring App
@@ -47,21 +77,29 @@ ID2=$(aws ec2 run-instances \
 --region $REGION \
 --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Windows-Monitor}]" \
 --user-data '<powershell>
+Set-ExecutionPolicy Unrestricted -Force
+ 
 Install-WindowsFeature Web-Server
 Start-Service W3SVC
-New-NetFirewallRule -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
  
-Start-Sleep -Seconds 20
+New-NetFirewallRule -DisplayName "Allow HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
  
-$cpu=(Get-Counter "\Processor(_Total)\% Processor Time").CounterSamples[0].CookedValue
+Start-Sleep -Seconds 30
  
-$html="<h1>📊 Monitoring</h1><p>CPU: $cpu %</p>"
-Set-Content C:\inetpub\wwwroot\index.html $html
+$cpu = (Get-Counter "\Processor(_Total)\% Processor Time").CounterSamples[0].CookedValue
+$ram = (Get-Counter "\Memory\Available MBytes").CounterSamples[0].CookedValue
+ 
+$html = "<h1>📊 Monitoring Dashboard</h1><p>CPU Usage: $cpu %</p><p>Available RAM: $ram MB</p>"
+ 
+Set-Content -Path "C:\inetpub\wwwroot\index.html" -Value $html
+ 
 iisreset
-</powershell>'
-)
+</powershell>' \
+--query "Instances[0].InstanceId" \
+--output text)
  
-sleep 90
+echo "⏳ Waiting for Windows..."
+sleep 120
  
 IPS=$(aws ec2 describe-instances \
 --instance-ids $ID1 $ID2 \
@@ -71,5 +109,5 @@ IPS=$(aws ec2 describe-instances \
 IPS_ARRAY=($IPS)
  
 echo "🪟 Windows Ready:"
-echo "Weather → http://${IPS_ARRAY[0]}"
-echo "Monitor → http://${IPS_ARRAY[1]}"
+echo "Weather -> http://${IPS_ARRAY[0]}"
+echo "Monitor -> http://${IPS_ARRAY[1]}"
