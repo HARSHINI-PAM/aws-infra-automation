@@ -1,11 +1,18 @@
 #!/bin/bash
+WINDOWS_AMI=$(aws ec2 describe-images \
+  --region $REGION \
+  --owners amazon \
+  --filters "Name=name,Values=Windows_Server-2019-English-Full-Base-*" \
+            "Name=state,Values=available" \
+  --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" \
+  --output text)
  
-WINDOWS_AMI=$(aws ssm get-parameters \
---names /aws/service/ami-windows-latest/Windows_Server-2019-English-Full-Base \
---query "Parameters[0].Value" \
---output text \
---region $REGION)
+echo "✅ Selected Windows AMI: $AMI_ID"
  
+if [ -z "$AMI_ID" ]; then
+  echo "❌ Windows AMI_ID is empty. Exiting..."
+  exit 1
+fi 
 echo "🚀 Creating Windows Servers..."
  
 # ========================

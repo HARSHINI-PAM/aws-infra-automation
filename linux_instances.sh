@@ -1,11 +1,21 @@
 #!/bin/bash
+
+AMI_ID=$(aws ec2 describe-images \
+  --region $REGION \
+  --owners amazon \
+  --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" \
+            "Name=state,Values=available" \
+  --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" \
+  --output text)
  
-AMI_ID=$(aws ssm get-parameters \
---names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
---query "Parameters[0].Value" \
---output text \
---region $REGION)
+echo "✅ Selected Linux AMI: $AMI_ID"
  
+# Safety check
+if [ -z "$AMI_ID" ]; then
+  echo "❌ AMI_ID is empty. Exiting..."
+  exit 1
+fi 
+
 echo "🚀 Creating Linux Servers..."
  
 # ========================
