@@ -1,0 +1,48 @@
+name: 🚀 AWS DevOps Deployment
+ 
+on:
+  workflow_dispatch:   # manual trigger (safe, no auto cost)
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+ 
+    steps:
+ 
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v3
+ 
+    - name: 🔧 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-north-1
+ 
+    - name: ⚙️ Make Scripts Executable
+      run: |
+        chmod +x deploy.sh
+        chmod +x linux_instances.sh
+        chmod +x windows_instances.sh
+ 
+    - name: 🚀 Run Deployment
+      run: |
+        ./deploy.sh
+ 
+    - name: ⏳ Wait (Demo time)
+      run: sleep 120
+ 
+    - name: 💣 Auto Cleanup
+      run: |
+        IDS=$(aws ec2 describe-instances \
+        --filters "Name=instance-state-name,Values=running" \
+        --query "Reservations[*].Instances[*].InstanceId" \
+        --output text)
+ 
+        if [ -n "$IDS" ]; then
+          aws ec2 terminate-instances --instance-ids $IDS
+          echo "✅ Instances terminated"
+        else
+          echo "No instances to terminate"
+        fi
+ 
