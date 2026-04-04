@@ -1,7 +1,12 @@
 name: 🚀 AWS DevOps Deployment
  
 on:
-  workflow_dispatch:   # manual trigger (safe, no auto cost)
+  workflow_dispatch:
+    inputs:
+      cleanup:
+        description: "Auto delete instances after demo?"
+        required: true
+        default: "yes"
  
 jobs:
   deploy:
@@ -23,17 +28,29 @@ jobs:
       run: |
         chmod +x deploy.sh
         chmod +x linux_instances.sh
-        chmod +x windows_instances.sh
+        chmod +x window_instances.sh
  
     - name: 🚀 Run Deployment
       run: |
+        echo "🚀 Starting Deployment..."
         ./deploy.sh
  
-    - name: ⏳ Wait (Demo time)
-      run: sleep 120
+    - name: ⏳ Wait for Demo (5 minutes)
+      run: |
+        echo "⏳ You have 5 minutes to test your applications..."
+        sleep 300
+ 
+    - name: ⚠️ Manual Cleanup Reminder
+      if: ${{ github.event.inputs.cleanup == 'no' }}
+      run: |
+        echo "⚠️ Auto cleanup is disabled!"
+        echo "👉 Please terminate instances manually from AWS console to avoid charges."
  
     - name: 💣 Auto Cleanup
+      if: ${{ github.event.inputs.cleanup == 'yes' }}
       run: |
+        echo "🧹 Cleaning up all running EC2 instances..."
+ 
         IDS=$(aws ec2 describe-instances \
         --filters "Name=instance-state-name,Values=running" \
         --query "Reservations[*].Instances[*].InstanceId" \
@@ -41,8 +58,8 @@ jobs:
  
         if [ -n "$IDS" ]; then
           aws ec2 terminate-instances --instance-ids $IDS
-          echo "✅ Instances terminated"
+          echo "✅ Instances terminated successfully"
         else
-          echo "No instances to terminate"
+          echo "ℹ️ No running instances found"
         fi
  
