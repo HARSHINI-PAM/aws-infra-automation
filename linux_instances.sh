@@ -1,143 +1,107 @@
 #!/bin/bash
-set -e
  
-echo "🐧 Starting Linux Deployment..."
-echo "Using REGION: $REGION"
-echo "Using KEY: $KEY_NAME"
-echo "Using SG: $SECURITY_GROUP_ID"
+AMI_ID=$(aws ssm get-parameters \
+--names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
+--query "Parameters[0].Value" \
+--output text \
+--region $REGION)
  
-# ==============================
-# DYNAMIC AMAZON LINUX AMI
-# ==============================
+echo "🚀 Creating Linux Servers..."
  
-AMI_ID=$(aws ec2 describe-images \
-  --owners amazon \
-  --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" \
-  --query "sort_by(Images, &CreationDate)[-1].ImageId" \
-  --region $REGION \
-  --output text)
- 
-echo "✅ Latest AMI: $AMI_ID"
- 
-# ==============================
-# 1️⃣ WEB SERVER
-# ==============================
- 
-echo "🚀 Creating Web Server..."
- 
+# ========================
+# 1️⃣ Project Dashboard
+# ========================
 ID1=$(aws ec2 run-instances \
-  --image-id $AMI_ID \
-  --count 1 \
-  --instance-type $INSTANCE_TYPE \
-  --key-name $KEY_NAME \
-  --security-group-ids $SECURITY_GROUP_ID \
-  --associate-public-ip-address \
-  --region $REGION \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-Web}]" \
-  --user-data '#!/bin/bash
+--image-id $AMI_ID \
+--count 1 \
+--instance-type $INSTANCE_TYPE \
+--key-name $KEY_NAME \
+--security-group-ids $SECURITY_GROUP_ID \
+--associate-public-ip-address \
+--region $REGION \
+--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-Dashboard}]" \
+--user-data '#!/bin/bash
 yum update -y
-yum install nginx -y
-systemctl start nginx
+amazon-linux-extras install nginx1 -y
 systemctl enable nginx
-echo "<h1>🚀 Linux Web Server Running</h1>" > /usr/share/nginx/html/index.html
-' \
-  --query "Instances[0].InstanceId" \
-  --output text)
- 
-# ==============================
-# 2️⃣ FILE MANAGER
-# ==============================
- 
-echo "📁 Creating File Manager..."
- 
-ID2=$(aws ec2 run-instances \
-  --image-id $AMI_ID \
-  --count 1 \
-  --instance-type $INSTANCE_TYPE \
-  --key-name $KEY_NAME \
-  --security-group-ids $SECURITY_GROUP_ID \
-  --associate-public-ip-address \
-  --region $REGION \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-File}]" \
-  --user-data '#!/bin/bash
-yum update -y
-yum install nginx -y
 systemctl start nginx
-systemctl enable nginx
- 
-mkdir -p /home/ec2-user/projects/demo
-echo "Hello DevOps 🚀" > /home/ec2-user/projects/demo/file.txt
- 
-TREE=$(ls -R /home/ec2-user/projects)
  
 cat <<EOF > /usr/share/nginx/html/index.html
-<h1>📁 File Manager</h1>
-<pre>$TREE</pre>
-<meta http-equiv="refresh" content="5">
+<h1>🚀 DevOps Automation Project</h1>
+<p>Automated AWS infrastructure using scripts</p>
+<p>Linux + Windows + DevOps Tools</p>
 EOF
-' \
-  --query "Instances[0].InstanceId" \
-  --output text)
+')
  
-# ==============================
-# 3️⃣ CLOCK SERVER
-# ==============================
+# ========================
+# 2️⃣ DevOps Server
+# ========================
+ID2=$(aws ec2 run-instances \
+--image-id $AMI_ID \
+--count 1 \
+--instance-type $INSTANCE_TYPE \
+--key-name $KEY_NAME \
+--security-group-ids $SECURITY_GROUP_ID \
+--associate-public-ip-address \
+--region $REGION \
+--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-DevOps}]" \
+--user-data '#!/bin/bash
+yum update -y
+amazon-linux-extras install nginx1 -y
+yum install docker -y
  
-echo "🕒 Creating Clock Server..."
+systemctl enable nginx docker
+systemctl start nginx docker
  
+docker run -d -p 8080:80 nginx
+ 
+cat <<EOF > /usr/share/nginx/html/index.html
+<h1>⚙️ DevOps Server</h1>
+<p>Nginx + Docker Running</p>
+<p>Docker App: :8080</p>
+EOF
+')
+ 
+# ========================
+# 3️⃣ File Manager
+# ========================
 ID3=$(aws ec2 run-instances \
-  --image-id $AMI_ID \
-  --count 1 \
-  --instance-type $INSTANCE_TYPE \
-  --key-name $KEY_NAME \
-  --security-group-ids $SECURITY_GROUP_ID \
-  --associate-public-ip-address \
-  --region $REGION \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-Clock}]" \
-  --user-data '#!/bin/bash
+--image-id $AMI_ID \
+--count 1 \
+--instance-type $INSTANCE_TYPE \
+--key-name $KEY_NAME \
+--security-group-ids $SECURITY_GROUP_ID \
+--associate-public-ip-address \
+--region $REGION \
+--tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=Linux-FileManager}]" \
+--user-data '#!/bin/bash
 yum update -y
 amazon-linux-extras install nginx1 -y
 systemctl start nginx
 systemctl enable nginx
  
+mkdir -p /home/ec2-user/project
+echo "This project automates infrastructure deployment using AWS CLI and DevOps tools." > /home/ec2-user/project/info.txt
+ 
+TREE=$(ls -R /home/ec2-user)
+ 
 cat <<EOF > /usr/share/nginx/html/index.html
-<!DOCTYPE html>
-<html>
-<head>
-<title>Clock</title>
-</head>
-<body>
-<h1>🕒 Clock Server Running</h1>
-<script>
-setInterval(() => {
-  document.body.innerHTML = "<h1>" + new Date().toLocaleString() + "</h1>";
-}, 1000);
-</script>
-</body>
-</html>
+<h1>📂 File Manager</h1>
+<pre>$TREE</pre>
 EOF
-' \
-  --query "Instances[0].InstanceId" \
-  --output text)
+')
  
-# ==============================
-# WAIT + IPS
-# ==============================
- 
-aws ec2 wait instance-running --instance-ids $ID1 $ID2 $ID3 --region $REGION
+sleep 60
  
 IPS=$(aws ec2 describe-instances \
-  --instance-ids $ID1 $ID2 $ID3 \
-  --query "Reservations[*].Instances[*].PublicIpAddress" \
-  --region $REGION \
-  --output text)
+--instance-ids $ID1 $ID2 $ID3 \
+--query 'Reservations[*].Instances[*].PublicIpAddress' \
+--output text)
  
 IPS_ARRAY=($IPS)
  
-echo "================================="
-echo "🎉 Linux Servers Ready!"
-echo "================================="
- 
-echo "🌐 Web: http://${IPS_ARRAY[0]}"
-echo "📁 File: http://${IPS_ARRAY[1]}"
-echo "🕒 Clock: http://${IPS_ARRAY[2]}"
+echo "🐧 Linux Ready:"
+echo "Dashboard → http://${IPS_ARRAY[0]}"
+echo "DevOps    → http://${IPS_ARRAY[1]}"
+echo "FileMgr   → http://${IPS_ARRAY[2]}"
+echo "Docker    → http://${IPS_ARRAY[1]}:8080"
