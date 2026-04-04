@@ -32,13 +32,13 @@ echo "✅ Validation successful"
 # =========================
 # EXECUTE
 # =========================
-chmod +x linux_instances.sh windows_instances.sh
+chmod +x linux_instances.sh window_instances.sh
  
 echo "🐧 Deploying Linux..."
 ./linux_instances.sh
  
 echo "🪟 Deploying Windows..."
-./windows_instances.sh
+./window_instances.sh
  
 echo ""
 echo "🎉 Deployment Completed"
