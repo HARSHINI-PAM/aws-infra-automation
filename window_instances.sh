@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
  
-echo "🚀 Creating Windows Servers..."
+echo "🚀 Creating Windows Servers..." >&2
  
 AMI_ID=$(aws ec2 describe-images \
   --region "$REGION" \
@@ -10,7 +10,9 @@ AMI_ID=$(aws ec2 describe-images \
   --query "Images | sort_by(@,&CreationDate)[-1].ImageId" \
   --output text)
  
-[[ "$AMI_ID" =~ ^ami- ]] || { echo "❌ AMI fetch failed"; exit 1; }
+[[ "$AMI_ID" =~ ^ami- ]] || { echo "❌ AMI fetch failed" >&2; exit 1; }
+ 
+echo "Using AMI: $AMI_ID" >&2
  
 launch_instance () {
   NAME=$1
@@ -34,7 +36,7 @@ launch_instance () {
  
   rm -f "$TMP_FILE"
  
-  [[ "$ID" =~ ^i- ]] || { echo "❌ Instance launch failed"; exit 1; }
+  [[ "$ID" =~ ^i- ]] || { echo "❌ Instance launch failed" >&2; exit 1; }
  
   echo "$ID"
 }
@@ -52,12 +54,9 @@ Remove-Item "C:\inetpub\wwwroot\iisstart.htm" -ErrorAction SilentlyContinue
  
 $html = @"
 <html>
-<style>
-body{background:#0f172a;color:#38bdf8;text-align:center;font-family:Arial}
-</style>
+<body style="background:#0f172a;color:#38bdf8;text-align:center;font-family:Arial">
 <h1>🌍 Global Clock</h1>
 <p id="clock"></p>
- 
 <script>
 setInterval(function(){
 document.getElementById("clock").innerHTML =
@@ -65,6 +64,7 @@ document.getElementById("clock").innerHTML =
 "GMT: "+new Date().toUTCString();
 },1000)
 </script>
+</body>
 </html>
 "@
  
@@ -87,13 +87,12 @@ $ram = (Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory
  
 $html = @"
 <html>
-<style>
-body{background:#111;color:#00ffcc;text-align:center;font-family:Arial}
-</style>
+<body style="background:#111;color:#00ffcc;text-align:center;font-family:Arial">
 <h1>🖥 System Monitor</h1>
 <p>CPU: $cpu %</p>
 <p>Free RAM: $ram</p>
 <meta http-equiv="refresh" content="5">
+</body>
 </html>
 "@
  
@@ -101,5 +100,6 @@ Set-Content "C:\inetpub\wwwroot\index.html" $html
 iisreset
 </powershell>')"
  
+echo "✅ Windows servers created" >&2
 echo $IDS
  

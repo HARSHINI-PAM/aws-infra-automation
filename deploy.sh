@@ -44,7 +44,15 @@ LINUX_IDS=$(./linux_instances.sh)
 log "🪟 Deploying Windows..."
 WINDOW_IDS=$(./window_instances.sh)
  
+# DEBUG (optional but useful)
+log "Linux IDs: $LINUX_IDS"
+log "Windows IDs: $WINDOW_IDS"
+ 
 ALL_IDS="$LINUX_IDS $WINDOW_IDS"
+ 
+if [[ -z "$ALL_IDS" ]]; then
+  echo "❌ No instance IDs found"; exit 1;
+fi
  
 log "Waiting for instances..."
 aws ec2 wait instance-status-ok --region "$REGION" --instance-ids $ALL_IDS

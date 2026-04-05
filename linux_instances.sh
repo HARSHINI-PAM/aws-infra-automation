@@ -1,7 +1,7 @@
-#!/bin/bash
+!/bin/bash
 set -euo pipefail
  
-echo "🚀 Creating Linux Servers..."
+echo "🚀 Creating Linux Servers..." >&2
  
 AMI_ID=$(aws ec2 describe-images \
   --region "$REGION" \
@@ -10,7 +10,9 @@ AMI_ID=$(aws ec2 describe-images \
   --query "Images | sort_by(@,&CreationDate)[-1].ImageId" \
   --output text)
  
-[[ "$AMI_ID" =~ ^ami- ]] || { echo "❌ AMI fetch failed"; exit 1; }
+[[ "$AMI_ID" =~ ^ami- ]] || { echo "❌ AMI fetch failed" >&2; exit 1; }
+ 
+echo "Using AMI: $AMI_ID" >&2
  
 launch_instance () {
   NAME=$1
@@ -34,7 +36,7 @@ launch_instance () {
  
   rm -f "$TMP_FILE"
  
-  [[ "$ID" =~ ^i- ]] || { echo "❌ Instance launch failed"; exit 1; }
+  [[ "$ID" =~ ^i- ]] || { echo "❌ Instance launch failed" >&2; exit 1; }
  
   echo "$ID"
 }
@@ -109,5 +111,5 @@ pre{background:#222;padding:10px}
 EOF
 ')"
  
+echo "✅ Linux servers created" >&2
 echo $IDS
- 
