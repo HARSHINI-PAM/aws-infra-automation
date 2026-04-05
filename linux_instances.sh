@@ -51,13 +51,12 @@ exec > /var/log/user-data.log 2>&1
 echo "Starting Dashboard setup..."
  
 for i in {1..5}; do yum update -y && break || sleep 5; done
-for i in {1..5}; do yum install -y nginx && break || sleep 5; done
+ 
+# FIX: Proper nginx install
+for i in {1..5}; do amazon-linux-extras install -y nginx1 && break || sleep 5; done
  
 systemctl enable nginx
- 
-for i in {1..5}; do systemctl start nginx && break || sleep 3; done
- 
-systemctl is-active nginx || systemctl restart nginx
+systemctl restart nginx
  
 cat <<EOF > /usr/share/nginx/html/index.html
 <html>
@@ -82,17 +81,29 @@ exec > /var/log/user-data.log 2>&1
 echo "Starting DevOps setup..."
  
 for i in {1..5}; do yum update -y && break || sleep 5; done
-for i in {1..5}; do yum install -y nginx docker && break || sleep 5; done
+ 
+# FIXED INSTALLATION
+for i in {1..5}; do amazon-linux-extras install -y nginx1 && break || sleep 5; done
+for i in {1..5}; do yum install -y docker && break || sleep 5; done
  
 systemctl enable nginx docker
-systemctl start nginx docker
+systemctl restart nginx docker
  
-for i in {1..5}; do systemctl start docker && break || sleep 3; done
+# Ensure nginx is running
+systemctl is-active nginx || systemctl restart nginx
  
+# Run docker container
 docker rm -f nginx || true
 docker run -d --restart always -p 8080:80 nginx
  
-echo "<h1>⚙ DevOps Server Running (Docker on 8080)</h1>" > /usr/share/nginx/html/index.html
+cat <<EOF > /usr/share/nginx/html/index.html
+<html>
+<body style="background:#111;color:#0f0;text-align:center;">
+<h1>⚙ DevOps Server</h1>
+<p>Nginx (port 80) + Docker (port 8080)</p>
+</body>
+</html>
+EOF
 ')"
  
 # ================= FILE MANAGER =================
@@ -103,10 +114,12 @@ exec > /var/log/user-data.log 2>&1
 echo "Starting File Manager setup..."
  
 for i in {1..5}; do yum update -y && break || sleep 5; done
-for i in {1..5}; do yum install -y nginx && break || sleep 5; done
+ 
+# FIX nginx install
+for i in {1..5}; do amazon-linux-extras install -y nginx1 && break || sleep 5; done
  
 systemctl enable nginx
-systemctl start nginx
+systemctl restart nginx
  
 mkdir -p /home/ec2-user/project
 echo "DevOps File Manager" > /home/ec2-user/project/info.txt
