@@ -66,8 +66,8 @@ body{background:#0f172a;color:#38bdf8;text-align:center;font-family:Arial}
 </style>
 <h1>🚀 DevOps Dashboard</h1>
 <div class="card">
-<p>Uptime: \$(uptime)</p>
-<pre>\$(free -h)</pre>
+<p>Uptime: $(uptime)</p>
+<pre>$(free -h)</pre>
 </div>
 </html>
 EOF
