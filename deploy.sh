@@ -2,39 +2,40 @@
  
 set -e
  
-# ==============================
-# CONFIG (EDIT ONLY HERE)
-# ==============================
+# ======================
+# CONFIG (EDIT HERE ONLY)
+# ======================
 REGION="eu-north-1"
+INSTANCE_TYPE="t3.micro"
 KEY_NAME="aws-project-key"
 SECURITY_GROUP_ID="sg-0e2a308bcf9c86f10"
-INSTANCE_TYPE="t3.micro"
  
-echo "🚀 Starting Deployment..."
+export REGION INSTANCE_TYPE KEY_NAME SECURITY_GROUP_ID
  
-# Export variables
-export REGION
-export KEY_NAME
-export SECURITY_GROUP_ID
-export INSTANCE_TYPE
+echo "================================="
+echo "🚀 Starting DevOps Deployment"
+echo "================================="
  
-# ==============================
-# VALIDATE AWS
-# ==============================
-echo "🔍 Validating AWS setup..."
-aws sts get-caller-identity > /dev/null
-echo "✅ Validation successful"
+# Validate AWS
+aws ec2 describe-key-pairs --key-names $KEY_NAME > /dev/null 2>&1 || {
+  echo "❌ Key Pair not found"
+  exit 1
+}
  
-# ==============================
-# LINUX DEPLOYMENT
-# ==============================
-echo "🐧 Deploying Linux..."
-bash linux_instances.sh
+aws ec2 describe-security-groups --group-ids $SECURITY_GROUP_ID > /dev/null 2>&1 || {
+  echo "❌ Security Group not found"
+  exit 1
+}
  
-# ==============================
-# WINDOWS DEPLOYMENT
-# ==============================
-echo "🪟 Deploying Windows..."
-bash window_instances.sh
+chmod +x linux_instances.sh
+chmod +x window_instances.sh
  
-echo "🎉 Deployment Complete!"
+echo "🐧 Deploying Linux Servers..."
+./linux_instances.sh
+ 
+echo "🪟 Deploying Windows Servers..."
+./window_instances.sh
+ 
+echo ""
+echo "✅ Deployment Completed!"
+echo "👉 Wait 3–5 minutes before accessing apps"
