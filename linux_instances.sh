@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 set -euo pipefail
  
 echo "🚀 Creating Linux Servers..." >&2
@@ -43,15 +43,21 @@ launch_instance () {
  
 IDS=""
  
-# DASHBOARD
+# ================= DASHBOARD =================
 IDS+=" $(launch_instance "Linux-Dashboard" '#!/bin/bash
-yum update -y
-yum install -y nginx
+ 
+exec > /var/log/user-data.log 2>&1
+ 
+echo "Starting Dashboard setup..."
+ 
+for i in {1..5}; do yum update -y && break || sleep 5; done
+for i in {1..5}; do yum install -y nginx && break || sleep 5; done
  
 systemctl enable nginx
-systemctl start nginx
  
-until systemctl is-active nginx; do sleep 2; done
+for i in {1..5}; do systemctl start nginx && break || sleep 3; done
+ 
+systemctl is-active nginx || systemctl restart nginx
  
 cat <<EOF > /usr/share/nginx/html/index.html
 <html>
@@ -68,34 +74,42 @@ body{background:#0f172a;color:#38bdf8;text-align:center;font-family:Arial}
 EOF
 ')"
  
-# DEVOPS
+# ================= DEVOPS =================
 IDS+=" $(launch_instance "Linux-DevOps" '#!/bin/bash
-yum update -y
-yum install -y nginx docker
+ 
+exec > /var/log/user-data.log 2>&1
+ 
+echo "Starting DevOps setup..."
+ 
+for i in {1..5}; do yum update -y && break || sleep 5; done
+for i in {1..5}; do yum install -y nginx docker && break || sleep 5; done
  
 systemctl enable nginx docker
 systemctl start nginx docker
  
-until systemctl is-active docker; do sleep 2; done
+for i in {1..5}; do systemctl start docker && break || sleep 3; done
  
 docker rm -f nginx || true
 docker run -d --restart always -p 8080:80 nginx
  
-echo "<h1>DevOps Server Running (Docker on 8080)</h1>" > /usr/share/nginx/html/index.html
+echo "<h1>⚙ DevOps Server Running (Docker on 8080)</h1>" > /usr/share/nginx/html/index.html
 ')"
  
-# FILE MANAGER
+# ================= FILE MANAGER =================
 IDS+=" $(launch_instance "Linux-File-Manager" '#!/bin/bash
-yum update -y
-yum install -y nginx
+ 
+exec > /var/log/user-data.log 2>&1
+ 
+echo "Starting File Manager setup..."
+ 
+for i in {1..5}; do yum update -y && break || sleep 5; done
+for i in {1..5}; do yum install -y nginx && break || sleep 5; done
  
 systemctl enable nginx
 systemctl start nginx
  
 mkdir -p /home/ec2-user/project
 echo "DevOps File Manager" > /home/ec2-user/project/info.txt
- 
-until systemctl is-active nginx; do sleep 2; done
  
 FILES=\$(ls -lah /home/ec2-user/project)
  
@@ -113,3 +127,4 @@ EOF
  
 echo "✅ Linux servers created" >&2
 echo $IDS
+ 
